@@ -1,0 +1,103 @@
+parameters:
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+
+  - name: docker
+    type: object
+    displayName: Docker Build Config
+    default:
+      image: '$(Build.Repository.Name)'
+      dockerfilePath: 'Dockerfile'
+      buildContext: ''
+      tag: $(Build.BuildId)
+      registry: ''
+
+  - name: snyk
+    type: object
+    displayName: Snyk Configuration
+    default:
+      serviceConnection: ''
+      severityThreshold: 'critical'
+      failOnIssues: true
+      skip: false
+
+  - name: dev
+    type: object
+    displayName: Dev Config
+    default:
+      stage: dev
+      ecs:
+        taskDefinition: ''
+        cluster: ''
+
+  - name: hml
+    type: object
+    displayName: HML Config
+    default:
+      stage: hml
+      ecs:
+        taskDefinition: ''
+        cluster: ''
+
+  - name: prod
+    type: object
+    displayName: Prod Config
+    default:
+      stage: prod
+      ecs:
+        taskDefinition: ''
+        cluster: ''
+
+stages:
+  - stage: QualityAnalisys
+    displayName: Quality Analisys
+    jobs:
+      - template: '$(System.DefaultWorkingDirectory)/jobs/prebuild/yarn.yml'
+        parameters:
+          sonarQube: ${{ parameters.sonarQube }}
+          nodeVersion: ${{ parameters.nodeVersion }}
+          snyk: ${{ parameters.snyk }}
+          
+  - stage: BuidDockerImage
+    displayName: 'Build e Push Imagem Docker'
+    jobs:        
+      - template: '$(System.DefaultWorkingDirectory)/jobs/build/ecr.yml'
+        parameters:
+          aws: ${{ parameters.aws }}
+          snyk: ${{ parameters.snyk }}
+          docker: ${{ parameters.docker }}
+
+  - stage: Development
+    displayName: "Deploy on Development"
+    jobs:
+    - template: $(System.DefaultWorkingDirectory)/jobs/deploy/aws/ecs/deploy.yml
+      parameters:
+        stage: ${{ parameters.dev.stage }}
+        aws: ${{ parameters.aws }}
+        ecs: ${{ parameters.dev.ecs }}
+        docker: ${{ parameters.docker }}
+
+  - stage: Homologation
+    displayName: "Deploy on Homologation"
+    jobs:
+    - template: $(System.DefaultWorkingDirectory)/jobs/deploy/aws/ecs/deploy.yml
+      parameters:
+        stage: ${{ parameters.hml.stage }}
+        aws: ${{ parameters.aws }}
+        ecs: ${{ parameters.hml.ecs }}
+        docker: ${{ parameters.docker }}
+
+  - stage: Production
+    displayName: "Deploy on Production"
+    jobs:
+    - template: $(System.DefaultWorkingDirectory)/jobs/deploy/aws/ecs/deploy.yml
+      parameters:
+        stage: ${{ parameters.prod.stage }}
+        aws: ${{ parameters.aws }}
+        ecs: ${{ parameters.prod.ecs }}
+        docker: ${{ parameters.docker }}
+  

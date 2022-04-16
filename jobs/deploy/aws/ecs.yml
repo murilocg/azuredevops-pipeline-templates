@@ -1,0 +1,48 @@
+parameters:
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+
+  - name: ecs
+    type: object
+    displayName: ECS Config
+    default:
+      taskDefinition: ''
+      cluster: ''
+
+  - name: docker
+    type: object
+    displayName: Docker Config
+    default:
+      image: ''
+      tag: ''
+      registry: ''
+  
+  - name: stage
+    displayName: Stage's Name
+    type: string
+    default: 'dev'
+    values:
+    - dev
+    - hml
+    - pre-prod
+    - prod
+
+jobs:
+  - deployment: deploy
+    displayName: Deploy
+    environment: ${{ parameters.stage }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: templates
+            clean: true
+          - template: '$(System.DefaultWorkingDirectory)/steps/deploy/ecs.yml'
+            parameters:
+              aws: ${{ parameters.aws }}
+              ecs: ${{ parameters.ecs }}
+              docker: ${{ parameters.docker }}

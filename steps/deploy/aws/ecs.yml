@@ -1,0 +1,31 @@
+parameters:
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+
+  - name: ecs
+    type: object
+    displayName: ECS Config
+    default:
+      taskDefinition: ''
+      cluster: ''
+
+  - name: docker
+    type: object
+    displayName: Docker Config
+    default:
+      image: ''
+      tag: ''
+      registry: ''
+
+steps:
+  - task: AmazonWebServices.aws-vsts-tools.AWSShellScript.AWSShellScript@1
+    displayName: 'Deploy ECS'
+    inputs:
+      awsCredentials: ${{ parameters.aws.serviceConnection }}
+      regionName: ${{ parameters.aws.region }}
+      arguments: '${{ parameters.ecs.cluster }} ${{ parameters.ecs.taskDefinition }} ${{ parameters.docker.registry }} ${{ parameters.docker.image }} ${{ parameters.docker.tag }}'
+      filePath: '$(System.DefaultWorkingDirectory)/scripts/deploy/create-new-release-ecs.sh'

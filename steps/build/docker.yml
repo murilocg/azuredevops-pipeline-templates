@@ -1,0 +1,51 @@
+parameters:
+  - name: workingDirectory
+    default: '$(System.DefaultWorkingDirectory)/$(Build.Repository.Name)'
+  
+  - name: docker
+    type: object
+    displayName: Docker Build Config
+    default:
+      image: '$(Build.Repository.Name)'
+      dockerfilePath: 'Dockerfile'
+      buildContext: ''
+      tag: $(Build.BuildId)
+
+  - name: snyk
+    type: object
+    displayName: Snyk Configuration
+    default:
+      serviceConnection: ''
+      severityThreshold: 'critical'
+      failOnIssues: true
+      skip: false
+  
+steps:
+  - task: Docker@2
+    displayName: Build a Docker image
+    inputs:
+      command: build
+      buildContext: '${{ parameters.workingDirectory }}/${{ parameters.docker.buildContext }}'
+      dockerfile: '${{ parameters.workingDirectory }}/${{ parameters.docker.dockerfilePath }}'
+      repository: '${{ parameters.docker.registry }}/${{ parameters.docker.image}}'
+      tags: ${{ parameters.docker.tag }}
+  
+  - task: SnykSecurityScan@1
+    condition: and(succeeded(), eq(${{ parameters.skip }}, false))
+    displayName: "Snyk Docker Scan"
+    inputs:
+      serviceConnectionEndpoint: ${{ parameters.snyk.serviceConnection }}
+      testType: 'container'
+      dockerImageName: '${{ parameters.docker.registry }}/${{ parameters.docker.image}}:${{ parameters.docker.tag }}'
+      severityThreshold: ${{ parameters.snyk.severityThreshold }}
+      monitorWhen: 'always'
+      failOnIssues:  ${{ parameters.snyk.failOnIssues }}
+  
+  - task: Docker@2
+    displayName: Push a Docker image
+    inputs:
+      containerRegistry: ${{ parameters.docker.registry }}
+      repository: ${{ parameters.docker.image }}
+      command: push
+      tags: ${{ parameters.tag }}
+      command: push

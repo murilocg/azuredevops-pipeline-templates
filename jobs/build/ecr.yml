@@ -1,0 +1,45 @@
+parameters:
+  - name: workingDirectory
+    default: '$(System.DefaultWorkingDirectory)/$(Build.Repository.Name)'
+  
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+
+  - name: docker
+    type: object
+    displayName: Docker Build Config
+    default:
+      image: '$(Build.Repository.Name)'
+      dockerfilePath: 'Dockerfile'
+      buildContext: ''
+      tag: $(Build.BuildId)
+      registry: ''
+
+  - name: snyk
+    type: object
+    displayName: Snyk Configuration
+    default:
+      serviceConnection: ''
+      severityThreshold: 'critical'
+      failOnIssues: true
+      skip: false
+
+jobs:
+  - job:
+    displayName: 'Build'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - template: '$(System.DefaultWorkingDirectory)/steps/shared/ecr-login.yml'
+        parameters:
+          aws: ${{ parameters.aws }}
+          registry: ${{ parameters.docker.registry }}
+      
+      - template: '$(System.DefaultWorkingDirectory)/steps/build/docker.yml'
+        parameters:
+          docker: ${{ parameters.docker }}
+          snyk: ${{ parameters.snyk }}

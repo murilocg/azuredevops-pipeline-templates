@@ -1,0 +1,20 @@
+parameters:
+- name: aws
+  type: object
+  displayName: AWS Configuration
+  default:
+    serviceConnection: ''
+    region: ''
+- name: registry
+  type: string
+  displayName: ECR Registry
+
+steps:
+- task: AWSShellScript@1
+  displayName: 'Docker Login'
+  inputs:
+    awsCredentials: ${{ parameters.aws.serviceConnection }}
+    regionName: ${{ parameters.aws.region }}
+    scriptType: 'inline'
+    inlineScript: 'aws ecr get-login-password --region ${{ parameters.aws.region }} | docker login --username AWS --password-stdin ${{ parameters.registry }}'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/$(Build.Repository.Name)'

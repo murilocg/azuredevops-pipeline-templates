@@ -1,0 +1,54 @@
+parameters:
+
+- name: sonarQube
+  type: object
+  displayName: SonarQube configuration
+  default:
+    serviceConnection: ''
+    skipQualityGate: false
+    projectName: '$(Build.Repository.Name)' 
+    projectKey: '$(Build.Repository.Name)'
+
+- name: snyk
+  type: object
+  displayName: Snyk Configuration
+  default:
+    serviceConnection: ''
+    severityThreshold: 'critical'
+    failOnIssues: true
+    additionalArguments: ''
+    skip: false
+
+- name: nodeVersion
+  type: string
+  displayName: ReactJS Node version
+
+
+jobs:
+- job:
+  displayName: 'Quality Analyzes'
+  pool:
+    vmImage: 'ubuntu-latest'
+  variables: 
+    AGENT_USE_NODE10: true
+  steps:
+  - template: '$(System.DefaultWorkingDirectory)/steps/shared/node-version-config.yml'
+    parameters:
+      nodeVersion: ${{ parameters.nodeVersion }}
+
+  - template: '$(System.DefaultWorkingDirectory)/steps/prebuild/yarn.yml'
+  
+  - ${{ if eq(${{ parameters.snyk.skip}}, true) }}:
+    - template: '$(System.DefaultWorkingDirectory)/steps/shared/run-snyk-app.yml'        
+      parameters:
+        serviceConnection: ${{ parameters.snyk.serviceConnection }}
+        severityThreshold: ${{ parameters.snyk.severityThreshold }}
+        failOnIssues: ${{ parameters.snyk.failOnIssues }}
+        additionalArguments: ${{ parameters.snyk.additionalArguments }}
+  
+  - template: '$(System.DefaultWorkingDirectory)/steps/shared/run-sonarqube.yml'
+    parameters:
+      serviceConnection: ${{ parameters.sonarQube.serviceConnection }}
+      projectName: ${{ parameters.sonarQube.projectName }}
+      projectKey: ${{ parameters.sonarQube.projectKey }}
+      skipQualityGate: ${{ parameters.sonarQube.skipQualityGate }}

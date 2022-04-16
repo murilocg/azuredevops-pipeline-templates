@@ -1,0 +1,6 @@
+steps:
+  - script: 'yarn test:cov'
+    displayName: 'Run tests suites and collect coverage'
+
+  - script: 'yarn lint'
+    displayName: 'Run linter'

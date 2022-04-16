@@ -1,0 +1,44 @@
+parameters:
+  
+  - name: stage
+    displayName: Stage's Name
+    type: string
+    default: 'dev'
+    values:
+    - dev
+    - hml
+    - pre-prod
+    - prod
+  
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+
+  - name: cloudfront
+    type: object
+    displayName: Cloufront configuration
+    default:
+      bucketName: ''
+      alias: ''
+  
+  - name: sourceArtifact
+    displayName: Source Artifact
+    type: string
+    default: '$(System.DefaultWorkingDirectory)/build'
+
+jobs:
+  - deployment: deploy
+    displayName: Deploy in ${{ parameters.stage }}
+    environment: ${{ parameters.stage }}
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - template: '$(System.DefaultWorkingDirectory)/steps/deploy/aws/cloudfront.yml'
+            parameters: 
+              aws: ${{ parameters.aws }}
+              cloudfront: ${{ parameters.cloudfront }}
+              sourceArtifact: ${{ parameters.sourceArtifact }}

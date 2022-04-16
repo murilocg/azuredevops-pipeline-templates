@@ -1,0 +1,22 @@
+parameters:
+  - name: snyk
+    type: object
+    displayName: Snyk Configuration
+    default:
+      serviceConnection: ''
+      severityThreshold: 'critical'
+      failOnIssues: true
+      additionalArguments: ''
+
+
+steps:
+- task: SnykSecurityScan@1
+  condition: and(succeeded(), eq(${{ parameters.skip }}, false))
+  displayName: "Snyk Application Scan"
+  inputs:
+    serviceConnectionEndpoint: ${{ parameters.snyk.serviceConnection }}
+    testType: 'app'
+    severityThreshold: ${{ parameters.snyk.severityThreshold }}
+    monitorWhen: 'always'
+    failOnIssues: ${{ parameters.snyk.failOnIssues }}
+    additionalArguments: ${{ parameters.snyk.additionalArguments }}

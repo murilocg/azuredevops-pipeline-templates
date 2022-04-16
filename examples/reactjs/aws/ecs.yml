@@ -1,0 +1,46 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+resources:
+  repositories:
+  - repository: templates
+    type: git
+    name: 'Organization/templates'
+    ref: refs/tags/1.0-stable
+
+stages:
+- template: pipelines/reactjs/aws/ecs.yml@templates
+  parameters:
+    nodeVersion: '16.x'
+    sonarQube:
+      serviceConnection: 'SonarQube Service Connection Name'
+      projectName: 'webapp'
+      projectKey: 'webapp'
+      skipQualityGate: false
+    snyk:
+      serviceConnection: 'Snyk Service Connection Name'
+      severityThreshold: 'critical'
+      failOnIssues: true
+      skip: false
+    aws:
+      serviceConnection: 'AWS Service Connection Name'
+      region: 'us-east-1'
+    docker:
+      image: 'project-name'
+      dockerfilePath: 'app/Dockerfile'
+      registry: 'aws_account_id.dkr.ecr.region.amazonaws.com'
+    dev:
+      ecs:
+        taskDefinition: 'web-app-dev'
+        cluster: 'cluster-ecs-project-dev'
+    hml:
+      ecs:
+        taskDefinition: 'web-app-hml'
+        cluster: 'cluster-ecs-project-hml'
+    prod:
+      ecs:
+        taskDefinition: 'web-app-prod'
+        cluster: 'cluster-ecs-project-prod'

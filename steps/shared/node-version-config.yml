@@ -1,0 +1,15 @@
+parameters:
+- name: nodeVersion
+  type: string
+  displayName: Node version
+
+steps:
+- task: NodeTool@0
+  displayName: Set Node Version
+  inputs:
+    versionSpec: ${{ parameters.nodeVersion }}
+
+- task: YarnInstaller@3
+  displayName: 'Set yarn version'
+  inputs:
+    versionSpec: '1.x'

@@ -1,0 +1,91 @@
+parameters:
+  
+  - name: nodeVersion
+    type: string
+    displayName: ReactJS Node version
+    default: '16.x'
+
+  - name: skipLighthouse
+    default: true
+    type: boolean
+    displayName: Skip Lighthouse
+
+  - name: sourceFolderBuild
+    displayName: Source folder build
+    type: string
+    default: 'build'
+
+  - name: stage
+    displayName: Stage's Name
+    type: string
+    default: 'dev'
+    values:
+    - dev
+    - hml
+    - pre-prod
+    - prod
+
+  - name: sonarQube
+    type: object
+    displayName: SonarQube configuration
+    default:
+      serviceConnection: ''
+      skipQualityGate: false
+      projectName: '$(Build.Repository.Name)' 
+      projectKey: '$(Build.Repository.Name)'
+  
+  - name: snyk
+    type: object
+    displayName: Snyk Configuration
+    default:
+      serviceConnection: ''
+      severityThreshold: 'critical'
+      failOnIssues: true
+      additionalArguments: ''
+      skip: false
+  
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+  
+  - name: cloudfront
+    type: object
+    displayName: Cloufront configuration
+    default:
+      bucketName: ''
+      alias: ''
+
+stages:
+- stage: QualityAnalisys
+  displayName: Quality Analisys
+  jobs:
+  - template: '$(System.DefaultWorkingDirectory)/jobs/prebuild/yarn.yml'
+    parameters:
+      sonarQube: ${{ parameters.sonarQube }}
+      nodeVersion: ${{ parameters.nodeVersion }}
+      snyk: ${{ parameters.snyk }}
+
+- stage: Build
+  dependsOn: QualityAnalisys
+  displayName: Build
+  jobs:
+  - template: '$(System.DefaultWorkingDirectory)/jobs/build/yarn.yml'
+    parameters:
+      stage: ${{ parameters.stage }}
+      nodeVersion: ${{ parameters.nodeVersion }}
+      sourceFolderBuild: ${{ parameters.sourceFolderBuild }}
+      skipLighthouse: ${{ parameters.skipLighthouse }}
+
+- stage: Deploy
+  dependsOn: Build
+  displayName: Deploy WebApp
+  jobs:
+  - template: '$(System.DefaultWorkingDirectory)/jobs/deploy/aws/cloudfront.yml'
+    parameters:
+      aws: ${{ parameters.aws }}
+      cloudfront: ${{ parameters.cloudfront }}
+      stage: ${{ parameters.stage }}
+         

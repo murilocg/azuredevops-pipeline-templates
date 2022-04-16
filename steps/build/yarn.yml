@@ -1,0 +1,62 @@
+parameters:
+  - name: stage
+    displayName: Stage's Name
+    type: string
+    default: 'dev'
+    values:
+    - dev
+    - hml
+    - pre-prod
+    - prod
+  
+  - name: sourceFolderBuild
+    displayName: Source folder build
+    default: 'build'
+  
+  - name: skipLighthouse
+    default: true
+    displayName: Skip Lighthouse
+  
+steps:  
+  - script: 'yarn global add @lhci/cli@0.8.x serve'
+    condition: and(succeeded(), eq(${{ parameters.skipLighthouse }}, false))
+    displayName: 'Install ligthouse globally'
+
+  - script: 'yarn'
+    displayName: 'Installing application's dependencies'
+
+  - script: 'yarn build:${{ parameters.stage }}'
+    displayName: 'Build'
+
+  - script: lhci autorun
+    condition: and(succeeded(), eq(${{ parameters.skipLighthouse }}, true))
+    displayName: 'Executing Lighthouse'
+
+  - task: CopyFiles@2
+    displayName: 'Copy build to staging artifact'
+    inputs:
+      SourceFolder: '${{ parameters.sourceFolderBuild }}'
+      Contents: '**'
+      TargetFolder: '$(Build.Artifactstagingdirectory)/build'
+      CleanTargetFolder: true
+
+  - task: DeleteFiles@1
+    displayName: 'Delete build files'
+    inputs:
+      SourceFolder: '${{ parameters.sourceFolderBuild }}'
+      Contents: '**'
+      RemoveSourceFolder: true
+
+  - task: ArchiveFiles@2
+    displayName: 'Zip staging artifact'
+    inputs:
+      rootFolderOrFile: '$(Build.Artifactstagingdirectory)/build'
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/build.zip'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish build artifact'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)/build.zip'
+      ArtifactName: 'drop'
+      publishLocation: 'Container'

@@ -1,0 +1,51 @@
+parameters:
+  - name: aws
+    type: object
+    displayName: AWS Configuration
+    default:
+      serviceConnection: ''
+      region: ''
+
+  - name: cloudfront
+    type: object
+    displayName: Cloufront configuration
+    default:
+      bucketName: ''
+      alias: ''
+  
+  - name: sourceArtifact
+    displayName: Source Artifact
+    type: string
+    default: '$(System.DefaultWorkingDirectory)/build'
+
+steps:
+- task: DownloadPipelineArtifact@2
+  displayName: 'Download artifact'
+  inputs:
+    artifact: drop
+    path: $(System.DefaultWorkingDirectory)
+
+- task: ExtractFiles@1
+  displayName: 'Unzip artifact'
+  inputs:
+    archiveFilePatterns: '**/build.zip' 
+    destinationFolder: $(System.DefaultWorkingDirectory)
+    cleanDestinationFolder: false
+
+- task: AWSShellScript@1
+  displayName: 'Copy to S3 bucket'
+  inputs:
+    filePath: $(System.DefaultWorkingDirectory)/scripts/publish-files-s3.sh
+    arguments: ${{ parameters.sourceArtifact }} ${{ parameters.cloudfront.bucketName }}
+    awsCredentials: ${{ parameters.aws.serviceConnection }}
+    regionName: ${{ parameters.aws.region }}
+    workingDirectory: ${{ parameters.sourceArtifact }}
+
+- task: AmazonWebServices.aws-vsts-tools.AWSShellScript.AWSShellScript@1
+  condition: eq(variables['copyBucket'], 'success')
+  displayName: 'Create Invalidation - By cloudfront alias' 
+  inputs:
+    awsCredentials: ${{ parameters.aws.serviceConnection }}
+    regionName: ${{ parameters.aws.region }}
+    arguments: '${{ parameters.cloudfront.alias }}'
+    filePath: $(System.DefaultWorkingDirectory)/scripts/cloudfront-invalidation.sh   

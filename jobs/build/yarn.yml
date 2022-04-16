@@ -1,0 +1,41 @@
+parameters:
+  - name: nodeVersion
+    type: string
+    displayName: Node version
+    default: '16.x'
+
+  - name: stage
+    displayName: Stage's Name
+    type: string
+    default: 'dev'
+    values:
+    - dev
+    - hml
+    - pre-prod
+    - prod
+  
+  - name: sourceFolderBuild
+    displayName: Source folder build
+    type: string
+    default: 'build'
+  
+  - name: skipLighthouse
+    default: true
+    type: boolean
+    displayName: Skip Lighthouse
+
+jobs:
+  - job:
+    displayName: 'Build'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - template: '$(System.DefaultWorkingDirectory)/steps/shared/node-version-config.yml'
+        parameters:
+          nodeVersion: ${{ parameters.nodeVersion }}
+      
+      - template: '$(System.DefaultWorkingDirectory)/steps/build/yarn.yml'
+        parameters:
+          stage: ${{ parameters.stage }}
+          sourceFolderBuild: ${{ parameters.sourceFolderBuild }}
+          skipLighthouse: ${{ parameters.skipLighthouse }}

@@ -1,0 +1,35 @@
+trigger:
+- develop
+
+pool:
+  vmImage: ubuntu-latest
+
+resources:
+  repositories:
+  - repository: templates
+    type: git
+    name: 'Organization/templates'
+    ref: refs/tags/1.0-stable
+
+stages:
+- template: pipelines/reactjs/aws/cloudfront.yml@templates
+  parameters:
+    nodeVersion: '16.x'
+    stage: 'dev'
+    skipLighthouse: false
+    sourceFolderBuild: '.dist/'
+    sonarQube:
+      serviceConnection: 'SonarQube Service Connection Name'
+      projectName: 'webapp'
+      projectKey: 'webapp'
+      skipQualityGate: false
+    snyk:
+      serviceConnection: 'Snyk Service Connection Name'
+      severityThreshold: 'critical'
+      failOnIssues: true
+      skip: false
+    aws:
+      serviceConnection: 'AWS Service Connection Name'
+      region: 'us-east-1'
+    cloudfront: 
+      bucketName: 'organization-project-name-us-east-1'

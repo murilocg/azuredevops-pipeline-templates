@@ -1,0 +1,44 @@
+parameters:
+- name: serviceConnection
+  type: string
+  displayName: SonarQube service connection
+- name: projectName
+  type: string
+  displayName: Project's name
+  default: '$(Build.Repository.Name)'
+- name: projectKey
+  type: string
+  displayName: Project's key
+  default: '$(Build.Repository.Name)'
+- name: skipQualityGate
+  type: boolean
+  displayName: Skip quality gate
+  default: false
+
+steps:
+- task: SonarQubePrepare@5
+  displayName: 'SonarQube Prepare'
+  inputs:
+    SonarQube: ${{ parameters.serviceConnection }}
+    scannerMode: 'CLI'
+    configMode: 'file'
+    extraProperties: | 
+      sonar.branch.name=$(Build.SourceBranchName)
+      sonar.projectKey=${{ parameters.projectKey }}
+      sonar.projectName=${{ parameters.projectName }}
+      sonar.sourceEncoding=UTF-8
+      sonar.analysis.mode=publish
+
+- task: SonarQubeAnalyze@5
+  displayName: 'SonarQube Analyze'
+  
+- task: SonarQubePublish@5
+  displayName: 'Publish SonarQube results'
+  inputs:
+    pollingTimeoutSec: '300'
+
+- task: sonar-buildbreaker@8
+  condition: and(succeeded(), eq('${{ parameters.skipQualityGate }}', 'true'))
+  displayName: 'SonarQube Quality Gate'
+  inputs:
+    SonarQube: ${{ parameters.serviceConnection }}
